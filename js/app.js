@@ -47,9 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const cursorOffsetSlider = document.getElementById('cursorOffsetSlider');
   const cursorOffsetVal = document.getElementById('cursorOffsetVal');
 
-  const smoothEdgeSlider = document.getElementById('smoothEdgeSlider');
-  const smoothEdgeVal = document.getElementById('smoothEdgeVal');
-
   // Fixed Cursor Reticle Elements
   const cursorRing = document.getElementById('cursorRing');
   const reticleCircle = document.getElementById('reticleCircle');
@@ -161,11 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
     cursorOffset = parseInt(e.target.value, 10);
     cursorOffsetVal.textContent = `${cursorOffset} px`;
     updateCursorAppearance();
-  });
-
-  smoothEdgeSlider.addEventListener('input', (e) => {
-    smoothEdge = parseInt(e.target.value, 10);
-    smoothEdgeVal.textContent = smoothEdge;
   });
 
   // --- RETICLE CURSOR ENGINE ---
@@ -610,26 +602,111 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- EXPORT PNG ---
+  // --- EXPORT & SMOOTH EDGE MODAL (HandyCloset Style) ---
+  const exportModal = document.getElementById('exportModal');
+  const closeExportModalBtn = document.getElementById('closeExportModalBtn');
+  const cancelExportBtn = document.getElementById('cancelExportBtn');
+  const confirmSaveBtn = document.getElementById('confirmSaveBtn');
+  const exportPreviewCanvas = document.getElementById('exportPreviewCanvas');
+  const exportPreviewWrapper = document.getElementById('exportPreviewWrapper');
+  const expBgBtns = document.querySelectorAll('.exp-bg-btn');
+  const smoothPills = document.querySelectorAll('.smooth-pill');
+  const smoothLevelDesc = document.getElementById('smoothLevelDesc');
+
+  let activeExportSmoothLevel = 2; // Default level 2 (seperti di HandyCloset)
+  const expCtx = exportPreviewCanvas.getContext('2d');
+
+  const smoothLevelDescriptions = {
+    0: 'Level 0: Gambar asli tanpa pemotongan/erosi tepian',
+    1: 'Level 1: Kikis 1px border terluar (Subtle)',
+    2: 'Level 2 (Rekomendasi): Buang sisa garis warna background & haluskan tepi',
+    3: 'Level 3: Pembersihan tepian lebih dalam (3px)',
+    4: 'Level 4: Kikis 4px untuk background yang sangat kontras/berantakan',
+    5: 'Level 5: Pemotongan maksimal 5px ke dalam objek'
+  };
+
+  function updateExportPreview() {
+    if (!canvasMgr.currentImageData) return;
+
+    exportPreviewCanvas.width = canvasMgr.imageWidth;
+    exportPreviewCanvas.height = canvasMgr.imageHeight;
+
+    // Terapkan Smooth Edge real-time ke preview canvas
+    const smoothedData = Algorithms.applySmoothEdge(canvasMgr.currentImageData, activeExportSmoothLevel);
+    expCtx.putImageData(smoothedData, 0, 0);
+
+    // Update deskripsi hint
+    smoothLevelDesc.textContent = smoothLevelDescriptions[activeExportSmoothLevel] || '';
+
+    // Update active state di pills
+    smoothPills.forEach(pill => {
+      const lvl = parseInt(pill.dataset.level, 10);
+      if (lvl === activeExportSmoothLevel) pill.classList.add('active');
+      else pill.classList.remove('active');
+    });
+  }
+
+  // Buka dialog saat klik tombol Export PNG
   downloadBtn.addEventListener('click', () => {
     if (!canvasMgr.currentImageData) return;
 
-    let finalImageData = canvasMgr.currentImageData;
-    if (smoothEdge > 0) {
-      finalImageData = Algorithms.applySmoothEdge(canvasMgr.currentImageData, smoothEdge);
-    }
+    // Buka modal
+    exportModal.style.display = 'flex';
+    activeExportSmoothLevel = 2; // Default HandyCloset
+    updateExportPreview();
+  });
 
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = canvasMgr.imageWidth;
-    exportCanvas.height = canvasMgr.imageHeight;
-    const expCtx = exportCanvas.getContext('2d');
-    expCtx.putImageData(finalImageData, 0, 0);
+  // Ganti level Smooth Edge (0 - 5)
+  smoothPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      activeExportSmoothLevel = parseInt(pill.dataset.level, 10);
+      updateExportPreview();
+    });
+  });
 
+  // Switcher latar belakang preview di dalam modal
+  expBgBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      expBgBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const bgType = btn.dataset.expbg;
+      exportPreviewWrapper.className = `export-preview-wrapper bg-${bgType}`;
+    });
+  });
+
+  // Tutup Modal
+  function closeExportModal() {
+    exportModal.style.display = 'none';
+  }
+
+  closeExportModalBtn.addEventListener('click', closeExportModal);
+  cancelExportBtn.addEventListener('click', closeExportModal);
+  exportModal.addEventListener('click', (e) => {
+    if (e.target === exportModal) closeExportModal();
+  });
+
+  // Tombol Simpan & Download Akhir
+  confirmSaveBtn.addEventListener('click', () => {
+    if (!canvasMgr.currentImageData) return;
+
+    // Hitung hasil final beresolusi penuh
+    const finalData = Algorithms.applySmoothEdge(canvasMgr.currentImageData, activeExportSmoothLevel);
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvasMgr.imageWidth;
+    tempCanvas.height = canvasMgr.imageHeight;
+    const tCtx = tempCanvas.getContext('2d');
+    tCtx.putImageData(finalData, 0, 0);
+
+    // Download PNG
     const link = document.createElement('a');
-    link.download = `quick-erase-${Date.now()}.png`;
-    link.href = exportCanvas.toDataURL('image/png');
+    link.download = `quick-erase-smooth${activeExportSmoothLevel}-${Date.now()}.png`;
+    link.href = tempCanvas.toDataURL('image/png');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    closeExportModal();
   });
 });

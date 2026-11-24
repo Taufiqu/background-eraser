@@ -329,8 +329,8 @@ const Algorithms = {
   },
 
   /**
-   * Smooth Edge (Level 1 - 5)
-   * Menggunakan Morfologi Erosi Alpha + Feathering untuk menghilangkan border halo
+   * Smooth Edge (Level 1 - 5) persis HandyCloset
+   * Mengikis border halo warna background dan menghaluskan tepian masker alpha
    */
   applySmoothEdge(sourceImageData, level) {
     if (level <= 0) return sourceImageData;
@@ -343,50 +343,64 @@ const Algorithms = {
     const output = new ImageData(new Uint8ClampedArray(srcData), width, height);
     const outData = output.data;
 
-    // 1. Alpha Erosion (mengikis 1-3 piksel terluar agar halo warna background hilang)
-    const erodeSteps = Math.min(level, 3);
-    for (let step = 0; step < erodeSteps; step++) {
+    // 1. Alpha Erosion (kikis border luar sebanyak 'level' piksel)
+    const erodePasses = Math.min(level, 5);
+    for (let pass = 0; pass < erodePasses; pass++) {
       const tempAlpha = new Uint8Array(width * height);
       for (let i = 0; i < width * height; i++) {
         tempAlpha[i] = outData[i * 4 + 3];
       }
 
       for (let y = 1; y < height - 1; y++) {
+        const row = y * width;
         for (let x = 1; x < width - 1; x++) {
-          const idx = y * width + x;
+          const idx = row + x;
           if (tempAlpha[idx] === 0) continue;
 
-          // Cek 4 tetangga
+          // Cek 8-neighbourhood agar erosi merata diagonal
           if (
             tempAlpha[idx - 1] === 0 ||
             tempAlpha[idx + 1] === 0 ||
             tempAlpha[idx - width] === 0 ||
-            tempAlpha[idx + width] === 0
+            tempAlpha[idx + width] === 0 ||
+            tempAlpha[idx - width - 1] === 0 ||
+            tempAlpha[idx - width + 1] === 0 ||
+            tempAlpha[idx + width - 1] === 0 ||
+            tempAlpha[idx + width + 1] === 0
           ) {
-            // Kikis alpha
-            outData[idx * 4 + 3] = Math.max(0, outData[idx * 4 + 3] - 120);
+            // Erosi penuh piksel terluar yang bersentuhan dengan background transparan
+            outData[idx * 4 + 3] = 0;
           }
         }
       }
     }
 
-    // 2. Alpha Feathering (haluskan tepian dengan 3x3 box blur pada alpha saja)
-    if (level >= 2) {
-      const tempAlpha = new Uint8Array(width * height);
-      for (let i = 0; i < width * height; i++) {
-        tempAlpha[i] = outData[i * 4 + 3];
-      }
+    // 2. Feathering / Antialiasing Tepian (agar potongan halus dan tidak bergerigi)
+    const tempAlpha = new Uint8Array(width * height);
+    for (let i = 0; i < width * height; i++) {
+      tempAlpha[i] = outData[i * 4 + 3];
+    }
 
-      for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-          const idx = y * width + x;
-          // Hanya blur tepian (yang punya tetangga transparan / semi-transparan)
-          if (tempAlpha[idx] > 0 && tempAlpha[idx] < 255) {
+    for (let y = 1; y < height - 1; y++) {
+      const row = y * width;
+      for (let x = 1; x < width - 1; x++) {
+        const idx = row + x;
+        // Hanya proses piksel tepi yang bersebelahan dengan transparan
+        if (tempAlpha[idx] > 0) {
+          const hasZeroNeighbor = (
+            tempAlpha[idx - 1] === 0 ||
+            tempAlpha[idx + 1] === 0 ||
+            tempAlpha[idx - width] === 0 ||
+            tempAlpha[idx + width] === 0
+          );
+
+          if (hasZeroNeighbor) {
+            // Rata-rata bobot halus untuk antialiasing
             const sum =
-              tempAlpha[idx - width - 1] + tempAlpha[idx - width] + tempAlpha[idx - width + 1] +
-              tempAlpha[idx - 1] + tempAlpha[idx] + tempAlpha[idx + 1] +
-              tempAlpha[idx + width - 1] + tempAlpha[idx + width] + tempAlpha[idx + width + 1];
-            outData[idx * 4 + 3] = Math.round(sum / 9);
+              tempAlpha[idx - width - 1] * 0.5 + tempAlpha[idx - width] + tempAlpha[idx - width + 1] * 0.5 +
+              tempAlpha[idx - 1] + tempAlpha[idx] * 2 + tempAlpha[idx + 1] +
+              tempAlpha[idx + width - 1] * 0.5 + tempAlpha[idx + width] + tempAlpha[idx + width + 1] * 0.5;
+            outData[idx * 4 + 3] = Math.min(255, Math.round(sum / 7.5));
           }
         }
       }

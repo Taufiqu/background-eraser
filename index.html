@@ -182,18 +182,6 @@
             </div>
             <span class="setting-hint">Jarak kursor di atas jari/mouse agar tidak menutupi target di layar sentuh.</span>
           </div>
-
-          <!-- Smooth Edge (Finishing) -->
-          <div class="setting-box" id="smoothEdgeGroup">
-            <div class="setting-header">
-              <span class="setting-label">Smooth Edge (Anti-Halo)</span>
-              <span class="setting-pill" id="smoothEdgeVal">0</span>
-            </div>
-            <div class="range-wrap">
-              <input type="range" id="smoothEdgeSlider" min="0" max="5" value="0" step="1">
-            </div>
-            <span class="setting-hint">Kikis sisa warna background di garis tepi objek sebelum download.</span>
-          </div>
         </div>
 
         <!-- Quick Help Card -->
@@ -263,6 +251,63 @@
           </div>
         </div>
       </main>
+    </div>
+  </div>
+
+  <!-- EXPORT & SMOOTH EDGE MODAL (HandyCloset Style) -->
+  <div class="modal-overlay" id="exportModal" style="display: none;">
+    <div class="export-modal-box">
+      <div class="export-modal-header">
+        <div class="export-header-title">
+          <h2>✨ Simpan & Haluskan Tepian (Smooth Edge)</h2>
+          <p>Pilih tingkat kehalusan (0–5) untuk membuang sisa warna background di garis batas objek</p>
+        </div>
+        <button class="btn-icon modal-close-btn" id="closeExportModalBtn" title="Tutup">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Preview Window with live background toggle -->
+      <div class="export-preview-viewport">
+        <div class="export-preview-wrapper bg-white" id="exportPreviewWrapper">
+          <canvas id="exportPreviewCanvas"></canvas>
+        </div>
+
+        <!-- Floating BG Mode inside Export Modal -->
+        <div class="export-bg-switcher">
+          <span class="switcher-label">Latar Preview:</span>
+          <button class="exp-bg-btn active" data-expbg="white">⬜ Putih</button>
+          <button class="exp-bg-btn" data-expbg="black">⬛ Hitam</button>
+          <button class="exp-bg-btn" data-expbg="checkered">🏁 Catur</button>
+        </div>
+      </div>
+
+      <!-- Bottom Smooth Edge Selector 0 - 5 -->
+      <div class="export-modal-footer">
+        <div class="smooth-selector-wrap">
+          <div class="smooth-text-wrap">
+            <span class="smooth-title">Smooth Edge:</span>
+            <span class="smooth-hint" id="smoothLevelDesc">Tepian asli tanpa pemotongan</span>
+          </div>
+
+          <div class="smooth-pills">
+            <button class="smooth-pill active" data-level="0">0</button>
+            <button class="smooth-pill" data-level="1">1</button>
+            <button class="smooth-pill" data-level="2">2</button>
+            <button class="smooth-pill" data-level="3">3</button>
+            <button class="smooth-pill" data-level="4">4</button>
+            <button class="smooth-pill" data-level="5">5</button>
+          </div>
+        </div>
+
+        <div class="export-footer-actions">
+          <button class="btn btn-secondary" id="cancelExportBtn">Batal</button>
+          <button class="btn btn-primary btn-save" id="confirmSaveBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Simpan PNG</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
