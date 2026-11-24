@@ -567,6 +567,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Shortcuts
   window.addEventListener('keydown', (e) => {
+    // Abaikan jika user sedang mengetik di input
+    if (e.target.tagName === 'INPUT') return;
+
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
       if (e.shiftKey) doRedo();
@@ -574,7 +577,37 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
       e.preventDefault();
       doRedo();
+    } else if (e.key.toLowerCase() === 'b' && !e.ctrlKey && !e.metaKey) {
+      // Tombol 'B' untuk cycle background preview
+      cycleBackgroundMode();
     }
+  });
+
+  // --- BACKGROUND PREVIEW SELECTOR ---
+  const bgOptBtns = document.querySelectorAll('.bg-opt-btn');
+  const bgModes = ['checkered', 'dark', 'light'];
+  let currentBgIndex = 0;
+
+  function setBackgroundMode(mode) {
+    bgOptBtns.forEach(b => {
+      if (b.dataset.bg === mode) b.classList.add('active');
+      else b.classList.remove('active');
+    });
+
+    canvasWrapper.classList.remove('bg-checkered', 'bg-dark', 'bg-light');
+    canvasWrapper.classList.add(`bg-${mode}`);
+    currentBgIndex = bgModes.indexOf(mode);
+  }
+
+  function cycleBackgroundMode() {
+    currentBgIndex = (currentBgIndex + 1) % bgModes.length;
+    setBackgroundMode(bgModes[currentBgIndex]);
+  }
+
+  bgOptBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      setBackgroundMode(btn.dataset.bg);
+    });
   });
 
   // --- EXPORT PNG ---
