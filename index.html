@@ -3,48 +3,59 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>QuickErase - Background Eraser (Non-AI)</title>
+  <title>QuickErase - Pro Background Eraser</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app-layout">
-    <!-- Top Navigation Bar -->
+    <!-- Top Header -->
     <header class="app-header">
       <div class="brand">
-        <div class="logo-icon">✨</div>
-        <div class="brand-text">
-          <h1>QuickErase</h1>
-          <span class="badge">Pure Computer Vision (No AI)</span>
+        <div class="brand-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </div>
+        <div class="brand-info">
+          <div class="brand-title-wrap">
+            <h1>QuickErase</h1>
+            <span class="badge-pro">PRO ENGINE</span>
+          </div>
+          <span class="brand-sub">Non-AI • Offline • Zero Lag</span>
         </div>
       </div>
 
+      <div class="header-center-info" id="imageDimBadge" style="display: none;">
+        <span class="dim-icon">📐</span>
+        <span id="imageDimText">0 × 0 px</span>
+      </div>
+
       <div class="header-actions">
-        <label class="btn btn-secondary upload-btn" title="Buka gambar dari perangkat">
+        <label class="btn btn-secondary upload-btn" title="Buka gambar baru">
           <input type="file" id="imageInput" accept="image/*" hidden>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <span>Ganti Gambar</span>
         </label>
 
-        <button id="undoBtn" class="btn btn-icon" title="Undo (Ctrl+Z)" disabled>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+        <div class="btn-group">
+          <button id="undoBtn" class="btn btn-icon" title="Undo (Ctrl+Z)" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+          </button>
+          <button id="redoBtn" class="btn btn-icon" title="Redo (Ctrl+Y)" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+          </button>
+        </div>
+
+        <button id="resetBtn" class="btn btn-icon btn-danger-hover" title="Reset ke Gambar Awal" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
         </button>
 
-        <button id="redoBtn" class="btn btn-icon" title="Redo (Ctrl+Y)" disabled>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
-        </button>
+        <div class="divider-v"></div>
 
-        <button id="resetBtn" class="btn btn-icon" title="Reset ke Gambar Awal" disabled>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-        </button>
-
-        <div class="divider-vertical"></div>
-
-        <button id="downloadBtn" class="btn btn-primary" title="Download PNG Transparan" disabled>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span>Download PNG</span>
+        <button id="downloadBtn" class="btn btn-primary" title="Simpan sebagai PNG transparan" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Export PNG</span>
         </button>
       </div>
     </header>
@@ -53,149 +64,203 @@
     <div class="workspace">
       <!-- Sidebar Tools Panel -->
       <aside class="sidebar-panel">
-        <div class="panel-section">
-          <label class="section-label">MODE ALAT</label>
-          <div class="tool-grid">
-            <button class="tool-btn active" data-mode="auto" title="Auto Mode: Hapus area sewarna sekali klik (Magic Wand)">
-              <span class="tool-icon">🪄</span>
-              <span class="tool-name">Auto (Wand)</span>
-              <span class="tool-hint">Klik 1 area</span>
+        <div class="panel-card">
+          <div class="card-header">
+            <span class="card-title">MODE PENGHAPUS</span>
+            <span class="badge-mode" id="activeModeBadge">AUTO</span>
+          </div>
+
+          <div class="tool-list">
+            <button class="tool-item active" data-mode="auto">
+              <div class="tool-item-icon color-auto">🪄</div>
+              <div class="tool-item-info">
+                <span class="tool-item-name">Auto (Color Wand)</span>
+                <span class="tool-item-desc">Klik/drag area sewarna sekali klik</span>
+              </div>
             </button>
 
-            <button class="tool-btn" data-mode="magic" title="Magic Brush: Hapus hanya warna yang disentuh di tepian objek">
-              <span class="tool-icon">🎯</span>
-              <span class="tool-name">Magic Brush</span>
-              <span class="tool-hint">Edge-aware</span>
+            <button class="tool-item" data-mode="magic">
+              <div class="tool-item-icon color-magic">🎯</div>
+              <div class="tool-item-info">
+                <span class="tool-item-name">Magic Brush</span>
+                <span class="tool-item-desc">Edge-aware, aman di pinggiran objek</span>
+              </div>
             </button>
 
-            <button class="tool-btn" data-mode="manual" title="Manual Eraser: Kuas penghapus biasa">
-              <span class="tool-icon">🧹</span>
-              <span class="tool-name">Manual</span>
-              <span class="tool-hint">Hapus bebas</span>
+            <button class="tool-item" data-mode="manual">
+              <div class="tool-item-icon color-manual">🧹</div>
+              <div class="tool-item-info">
+                <span class="tool-item-name">Manual Eraser</span>
+                <span class="tool-item-desc">Kuas penghapus bebas tanpa filter</span>
+              </div>
             </button>
 
-            <button class="tool-btn" data-mode="repair" title="Repair Mode: Kembalikan bagian yang terhapus">
-              <span class="tool-icon">🩹</span>
-              <span class="tool-name">Repair</span>
-              <span class="tool-hint">Pulihkan</span>
+            <button class="tool-item" data-mode="repair">
+              <div class="tool-item-icon color-repair">🩹</div>
+              <div class="tool-item-info">
+                <span class="tool-item-name">Repair Brush</span>
+                <span class="tool-item-desc">Pulihkan gambar asli yang terhapus</span>
+              </div>
             </button>
 
-            <button class="tool-btn" data-mode="pan" title="Pan / Navigasi: Geser & perbesar tampilan">
-              <span class="tool-icon">✋</span>
-              <span class="tool-name">Pan & Zoom</span>
-              <span class="tool-hint">Geser kanvas</span>
+            <button class="tool-item" data-mode="pan">
+              <div class="tool-item-icon color-pan">✋</div>
+              <div class="tool-item-info">
+                <span class="tool-item-name">Pan & Zoom</span>
+                <span class="tool-item-desc">Geser & telusuri detail gambar</span>
+              </div>
             </button>
           </div>
         </div>
 
-        <!-- Tool Settings Adjusters -->
-        <div class="panel-section">
-          <label class="section-label">PENGATURAN PARAMETER</label>
-
-          <!-- Threshold / Color Tolerance -->
-          <div class="control-group" id="thresholdGroup">
-            <div class="control-header">
-              <span>Toleransi Warna</span>
-              <span class="control-value" id="thresholdVal">35</span>
-            </div>
-            <input type="range" id="thresholdSlider" min="1" max="100" value="35">
-            <span class="control-desc">Makin besar, makin banyak rentang warna tersambung yang terhapus.</span>
+        <!-- Parameters Card -->
+        <div class="panel-card">
+          <div class="card-header">
+            <span class="card-title">PARAMETER & FILTER</span>
           </div>
 
-          <!-- Brush Size -->
-          <div class="control-group" id="brushSizeGroup">
-            <div class="control-header">
-              <span>Ukuran Brush</span>
-              <span class="control-value" id="brushSizeVal">30 px</span>
+          <!-- Color Tolerance / Threshold Slider -->
+          <div class="setting-box" id="thresholdGroup">
+            <div class="setting-header">
+              <span class="setting-label">Toleransi Warna (Threshold)</span>
+              <span class="setting-pill" id="thresholdVal">35</span>
             </div>
-            <input type="range" id="brushSizeSlider" min="4" max="150" value="30">
+            <div class="range-wrap">
+              <input type="range" id="thresholdSlider" min="1" max="100" value="35">
+            </div>
+            <span class="setting-hint">Tingkatkan jika warna background yang terhapus masih bersisa.</span>
           </div>
 
-          <!-- Contiguous Mode Toggle for Auto Mode -->
-          <div class="control-group toggle-group" id="contiguousGroup">
-            <div class="toggle-info">
-              <span>Hanya Area Tersambung</span>
-              <small>Hapus hanya piksel sewarna yang bersentuhan</small>
+          <!-- Brush Size Slider -->
+          <div class="setting-box" id="brushSizeGroup">
+            <div class="setting-header">
+              <span class="setting-label">Ukuran Brush</span>
+              <span class="setting-pill" id="brushSizeVal">30 px</span>
             </div>
-            <label class="switch">
+            <div class="range-wrap">
+              <input type="range" id="brushSizeSlider" min="4" max="180" value="30">
+            </div>
+          </div>
+
+          <!-- Contiguous Mode Toggle -->
+          <div class="setting-box row-between" id="contiguousGroup">
+            <div>
+              <span class="setting-label">Hanya Area Menyambung</span>
+              <span class="setting-hint">Matikan jika ingin hapus semua warna serupa di seluruh foto.</span>
+            </div>
+            <label class="modern-switch">
               <input type="checkbox" id="contiguousToggle" checked>
-              <span class="slider"></span>
+              <span class="switch-handle"></span>
             </label>
           </div>
 
-          <!-- Cursor / Touch Offset (Crucial for Mobile & Precision) -->
-          <div class="control-group" id="offsetGroup">
-            <div class="control-header">
-              <span>Kursor Melayang (Offset)</span>
-              <span class="control-value" id="cursorOffsetVal">0 px</span>
+          <!-- Cursor Touch Offset (HandyCloset style) -->
+          <div class="setting-box" id="offsetGroup">
+            <div class="setting-header">
+              <span class="setting-label">Kursor Melayang (Offset)</span>
+              <span class="setting-pill" id="cursorOffsetVal">0 px</span>
             </div>
-            <input type="range" id="cursorOffsetSlider" min="0" max="120" value="0">
-            <span class="control-desc">Agar kursor muncul di atas jari/mouse (tidak tertutup tangan di HP).</span>
+            <div class="range-wrap">
+              <input type="range" id="cursorOffsetSlider" min="0" max="150" value="0">
+            </div>
+            <span class="setting-hint">Jarak kursor di atas jari/mouse agar tidak menutupi target di layar sentuh.</span>
           </div>
 
-          <!-- Edge Smoothing (Post-processing) -->
-          <div class="control-group" id="smoothEdgeGroup">
-            <div class="control-header">
-              <span>Haluskan Tepian (Smooth Edge)</span>
-              <span class="control-value" id="smoothEdgeVal">0</span>
+          <!-- Smooth Edge (Finishing) -->
+          <div class="setting-box" id="smoothEdgeGroup">
+            <div class="setting-header">
+              <span class="setting-label">Smooth Edge (Anti-Halo)</span>
+              <span class="setting-pill" id="smoothEdgeVal">0</span>
             </div>
-            <input type="range" id="smoothEdgeSlider" min="0" max="5" value="0" step="1">
-            <span class="control-desc">Menghilangkan bercak bergerigi / halo warna di batas objek.</span>
+            <div class="range-wrap">
+              <input type="range" id="smoothEdgeSlider" min="0" max="5" value="0" step="1">
+            </div>
+            <span class="setting-hint">Kikis sisa warna background di garis tepi objek sebelum download.</span>
           </div>
         </div>
 
-        <!-- Tips Section -->
-        <div class="panel-section info-card">
-          <div class="info-title">💡 Tips Cepat</div>
-          <p id="modeTipText"><strong>Auto:</strong> Klik pada background sewarna untuk menghapusnya instan. Atur slider toleransi jika background belum bersih.</p>
+        <!-- Quick Help Card -->
+        <div class="panel-card help-card">
+          <div class="help-header">
+            <span>💡 Petunjuk Mode</span>
+          </div>
+          <p id="modeTipText"><strong>Auto:</strong> Klik pada background sewarna untuk menghapusnya instan.</p>
         </div>
       </aside>
 
-      <!-- Center Viewport / Canvas Area -->
+      <!-- Center Canvas Viewport -->
       <main class="canvas-viewport" id="viewport">
-        <!-- Floating Canvas Controls -->
+        <!-- Floating Canvas Controls (Zoom & Center) -->
         <div class="floating-controls">
-          <button id="zoomInBtn" class="fab-btn" title="Zoom In (+)">➕</button>
-          <button id="zoomOutBtn" class="fab-btn" title="Zoom Out (-)">➖</button>
-          <button id="zoomFitBtn" class="fab-btn" title="Fit to Screen">🎯</button>
-          <span class="zoom-indicator" id="zoomLevelText">100%</span>
+          <button id="zoomInBtn" class="fab-btn" title="Zoom In (+)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button id="zoomOutBtn" class="fab-btn" title="Zoom Out (-)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button id="zoomFitBtn" class="fab-btn" title="Fit ke Layar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+          <span class="zoom-badge" id="zoomLevelText">100%</span>
         </div>
 
-        <!-- Checkerboard Viewport Container -->
+        <!-- Status Bar on Bottom Left of Viewport -->
+        <div class="viewport-status" id="viewportStatus">
+          <div class="pixel-color-indicator" id="pixelColorIndicator" style="background-color: transparent;"></div>
+          <span id="pixelCoordText">Ready</span>
+        </div>
+
+        <!-- Canvas Wrapper (Transformed with Pan & Zoom) -->
         <div class="canvas-wrapper" id="canvasWrapper">
           <canvas id="mainCanvas"></canvas>
-          <!-- Dynamic Cursor Indicator for Brush & Crosshair -->
-          <div id="cursorRing" class="cursor-ring">
-            <div class="crosshair-h"></div>
-            <div class="crosshair-v"></div>
-            <div class="offset-connector" id="offsetConnector"></div>
-          </div>
         </div>
 
         <!-- Empty State Dropzone -->
         <div class="dropzone" id="dropzone">
-          <div class="dropzone-content">
+          <div class="dropzone-box">
+            <div class="dropzone-badge">⚡ Pure Web Engine</div>
             <div class="drop-icon">🖼️</div>
-            <h2>Tarik & Lepas Gambar di Sini</h2>
-            <p>Atau pilih gambar dari komputer / HP kamu</p>
-            <div class="dropzone-buttons">
-              <label class="btn btn-primary">
+            <h2>Pilih Gambar yang Ingin Dihapus</h2>
+            <p>Tarik & letakkan foto di sini, atau pilih dari penyimpanan perangkat</p>
+            <div class="dropzone-actions">
+              <label class="btn btn-primary btn-lg">
                 <input type="file" id="dropzoneInput" accept="image/*" hidden>
-                Pilih File Gambar
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Pilih File Gambar</span>
               </label>
-              <button id="sampleImageBtn" class="btn btn-secondary">
-                🎨 Coba Contoh Gambar
+              <button id="sampleImageBtn" class="btn btn-secondary btn-lg">
+                🎨 Gunakan Contoh Gambar
               </button>
             </div>
-            <div class="feature-pills">
-              <span>⚡ 100% Offline</span>
-              <span>🔒 Privasi Aman</span>
-              <span>🚀 Zero AI / Instan</span>
+            <div class="drop-features">
+              <div class="feature-item">
+                <span class="feat-dot"></span> 100% Client-Side
+              </div>
+              <div class="feature-item">
+                <span class="feat-dot"></span> Privasi Aman (Offline)
+              </div>
+              <div class="feature-item">
+                <span class="feat-dot"></span> HandyCloset Algorithm
+              </div>
             </div>
           </div>
         </div>
       </main>
     </div>
+  </div>
+
+  <!-- FIXED CURSOR RETICLE (Placed directly under <body> to avoid CSS transform bugs!) -->
+  <div id="cursorRing" class="reticle-cursor">
+    <!-- Reticle Outer Circle -->
+    <div class="reticle-circle" id="reticleCircle">
+      <div class="reticle-cross-h"></div>
+      <div class="reticle-cross-v"></div>
+      <div class="reticle-center-dot"></div>
+      <div class="reticle-loupe" id="reticleLoupe" title="Warna terdeteksi"></div>
+    </div>
+    <!-- Vertical Offset Guide Line (HandyCloset Touch Line) -->
+    <div class="reticle-line" id="reticleLine"></div>
+    <div class="reticle-touch-point" id="reticleTouchPoint"></div>
   </div>
 
   <!-- Scripts -->

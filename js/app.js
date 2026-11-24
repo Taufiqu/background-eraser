@@ -1,5 +1,5 @@
 /**
- * QuickErase App Controller
+ * QuickErase - Pro App Controller
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,17 +12,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const dropzoneInput = document.getElementById('dropzoneInput');
   const sampleImageBtn = document.getElementById('sampleImageBtn');
 
-  // Toolbar & Buttons
+  // Header Elements
+  const imageDimBadge = document.getElementById('imageDimBadge');
+  const imageDimText = document.getElementById('imageDimText');
   const undoBtn = document.getElementById('undoBtn');
   const redoBtn = document.getElementById('redoBtn');
   const resetBtn = document.getElementById('resetBtn');
   const downloadBtn = document.getElementById('downloadBtn');
+
+  // Zoom Controls & Status
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomOutBtn = document.getElementById('zoomOutBtn');
   const zoomFitBtn = document.getElementById('zoomFitBtn');
   const zoomLevelText = document.getElementById('zoomLevelText');
+  const pixelColorIndicator = document.getElementById('pixelColorIndicator');
+  const pixelCoordText = document.getElementById('pixelCoordText');
 
-  // Sliders & Controls
+  // Tools & Parameter Sliders
+  const toolItems = document.querySelectorAll('.tool-item');
+  const activeModeBadge = document.getElementById('activeModeBadge');
+  const modeTipText = document.getElementById('modeTipText');
+
   const thresholdSlider = document.getElementById('thresholdSlider');
   const thresholdVal = document.getElementById('thresholdVal');
   const thresholdGroup = document.getElementById('thresholdGroup');
@@ -40,17 +50,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const smoothEdgeSlider = document.getElementById('smoothEdgeSlider');
   const smoothEdgeVal = document.getElementById('smoothEdgeVal');
 
+  // Fixed Cursor Reticle Elements
   const cursorRing = document.getElementById('cursorRing');
-  const offsetConnector = document.getElementById('offsetConnector');
-  const modeTipText = document.getElementById('modeTipText');
-
-  const toolButtons = document.querySelectorAll('.tool-btn');
+  const reticleCircle = document.getElementById('reticleCircle');
+  const reticleLoupe = document.getElementById('reticleLoupe');
+  const reticleLine = document.getElementById('reticleLine');
+  const reticleTouchPoint = document.getElementById('reticleTouchPoint');
 
   // Managers
   const canvasMgr = new CanvasManager(canvas, canvasWrapper, viewport);
   const historyMgr = new HistoryManager(20);
 
-  // App State
+  // App States
   let currentMode = 'auto'; // 'auto' | 'magic' | 'manual' | 'repair' | 'pan'
   let threshold = 35;
   let brushSize = 30;
@@ -64,15 +75,23 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastImagePos = null;
   let magicSampleColor = null;
 
-  const modeDescriptions = {
-    auto: '<strong>Auto (Wand):</strong> Klik pada background untuk menghapus area sewarna seketika. Atur slider toleransi jika warna belum bersih.',
-    magic: '<strong>Magic Brush:</strong> Sapukan kuas di dekat batas objek. Hanya warna yang disentuh titik tengah (+) yang akan terhapus.',
-    manual: '<strong>Manual:</strong> Kuas penghapus biasa tanpa filter warna. Cocok untuk menghapus area bebas secara manual.',
-    repair: '<strong>Repair:</strong> Sapukan kuas untuk mengembalikan bagian gambar asli yang tidak sengaja terhapus.',
-    pan: '<strong>Pan & Zoom:</strong> Klik & geser kanvas untuk melihat detail gambar, atau gunakan scroll mouse.'
+  const modeNames = {
+    auto: 'AUTO (WAND)',
+    magic: 'MAGIC BRUSH',
+    manual: 'MANUAL ERASER',
+    repair: 'REPAIR BRUSH',
+    pan: 'PAN & ZOOM'
   };
 
-  // --- INITIAL SETUP ---
+  const modeDescriptions = {
+    auto: '<strong>Auto (Color Wand):</strong> Klik atau geser target ke area background untuk menghapus warna sewarna instan. Naikkan slider toleransi jika warna belum bersih.',
+    magic: '<strong>Magic Brush:</strong> Sapukan kuas di dekat batas objek. Hanya warna yang disentuh titik tengah (+) yang akan terhapus tanpa menembus garis batas.',
+    manual: '<strong>Manual Eraser:</strong> Kuas penghapus standar. Menghapus seluruh area di dalam lingkaran brush.',
+    repair: '<strong>Repair Brush:</strong> Pulihkan kembali piksel gambar asli yang tidak sengaja terhapus.',
+    pan: '<strong>Pan & Zoom:</strong> Klik & geser kanvas untuk menavigasi, atau gunakan scroll mouse.'
+  };
+
+  // --- UI STATE SYNC ---
   function updateUIState() {
     undoBtn.disabled = !historyMgr.canUndo();
     redoBtn.disabled = !historyMgr.canRedo();
@@ -80,7 +99,17 @@ document.addEventListener('DOMContentLoaded', () => {
     downloadBtn.disabled = !canvasMgr.currentImageData;
     zoomLevelText.textContent = `${Math.round(canvasMgr.scale * 100)}%`;
 
-    // Visibilitas parameter sesuai mode
+    if (canvasMgr.imageWidth > 0) {
+      imageDimBadge.style.display = 'flex';
+      imageDimText.textContent = `${canvasMgr.imageWidth} × ${canvasMgr.imageHeight} px`;
+    } else {
+      imageDimBadge.style.display = 'none';
+    }
+
+    activeModeBadge.textContent = modeNames[currentMode] || 'TOOL';
+    modeTipText.innerHTML = modeDescriptions[currentMode] || '';
+
+    // Tampilkan slider sesuai mode aktif
     if (currentMode === 'auto') {
       thresholdGroup.style.display = 'flex';
       brushSizeGroup.style.display = 'none';
@@ -99,17 +128,16 @@ document.addEventListener('DOMContentLoaded', () => {
       contiguousGroup.style.display = 'none';
     }
 
-    modeTipText.innerHTML = modeDescriptions[currentMode] || '';
+    updateCursorAppearance();
   }
 
   // --- TOOL SWITCHING ---
-  toolButtons.forEach(btn => {
+  toolItems.forEach(btn => {
     btn.addEventListener('click', () => {
-      toolButtons.forEach(b => b.classList.remove('active'));
+      toolItems.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentMode = btn.dataset.mode;
       updateUIState();
-      updateCursorAppearance();
     });
   });
 
@@ -132,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cursorOffsetSlider.addEventListener('input', (e) => {
     cursorOffset = parseInt(e.target.value, 10);
     cursorOffsetVal.textContent = `${cursorOffset} px`;
+    updateCursorAppearance();
   });
 
   smoothEdgeSlider.addEventListener('input', (e) => {
@@ -139,202 +168,125 @@ document.addEventListener('DOMContentLoaded', () => {
     smoothEdgeVal.textContent = smoothEdge;
   });
 
-  // --- CURSOR INDICATOR ---
+  // --- RETICLE CURSOR ENGINE ---
   function updateCursorAppearance() {
+    cursorRing.className = `reticle-cursor mode-${currentMode}`;
+
     if (currentMode === 'pan') {
       cursorRing.style.display = 'none';
       viewport.style.cursor = 'grab';
       return;
     }
 
-    viewport.style.cursor = 'none';
-    cursorRing.style.display = 'block';
-
-    const screenDiameter = brushSize * 2 * canvasMgr.scale;
-    const finalSize = Math.max(8, screenDiameter);
-
-    cursorRing.style.width = `${finalSize}px`;
-    cursorRing.style.height = `${finalSize}px`;
-
+    // Hitung diameter lingkaran di layar sesuai skala zoom
+    let screenDiameter;
     if (currentMode === 'auto') {
-      // Auto mode hanya butuh target crosshair kecil
-      cursorRing.style.width = '24px';
-      cursorRing.style.height = '24px';
-      cursorRing.style.borderRadius = '50%';
-      cursorRing.style.borderColor = '#38bdf8';
-    } else if (currentMode === 'magic') {
-      cursorRing.style.borderColor = '#818cf8';
-      cursorRing.style.borderRadius = '50%';
-    } else if (currentMode === 'manual') {
-      cursorRing.style.borderColor = '#ef4444';
-      cursorRing.style.borderRadius = '50%';
-    } else if (currentMode === 'repair') {
-      cursorRing.style.borderColor = '#10b981';
-      cursorRing.style.borderRadius = '50%';
+      // Auto mode memakai reticle crosshair target konstan
+      screenDiameter = 32;
+    } else {
+      screenDiameter = Math.max(12, brushSize * 2 * canvasMgr.scale);
     }
 
+    reticleCircle.style.width = `${screenDiameter}px`;
+    reticleCircle.style.height = `${screenDiameter}px`;
+
+    // Offset line
     if (cursorOffset > 0) {
-      offsetConnector.style.display = 'block';
-      offsetConnector.style.height = `${cursorOffset}px`;
+      reticleLine.style.display = 'block';
+      reticleLine.style.height = `${cursorOffset}px`;
+      reticleTouchPoint.style.display = 'block';
+      reticleTouchPoint.style.top = `${cursorOffset}px`;
     } else {
-      offsetConnector.style.display = 'none';
+      reticleLine.style.display = 'none';
+      reticleTouchPoint.style.display = 'none';
     }
   }
 
-  function moveCursor(e) {
-    if (!canvasMgr.currentImageData) {
+  // Global Pointer Tracker (Tidak ada delay/loncat saat kursor masuk dari sidebar!)
+  window.addEventListener('pointermove', (e) => {
+    if (!canvasMgr.currentImageData || currentMode === 'pan') {
       cursorRing.style.display = 'none';
-      viewport.style.cursor = 'default';
+      viewport.style.cursor = currentMode === 'pan' ? 'grab' : 'default';
       return;
     }
 
-    const clientX = e.clientX;
-    const clientY = e.clientY - cursorOffset; // Terapkan offset agar kursor di atas jari/mouse
+    const vpRect = viewport.getBoundingClientRect();
+    const isInsideViewport = (
+      e.clientX >= vpRect.left &&
+      e.clientX <= vpRect.right &&
+      e.clientY >= vpRect.top &&
+      e.clientY <= vpRect.bottom
+    );
 
-    cursorRing.style.left = `${clientX}px`;
-    cursorRing.style.top = `${clientY}px`;
-  }
-
-  // --- IMAGE LOADING ---
-  function handleImageFile(file) {
-    if (!file || !file.type.startsWith('image/')) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        canvasMgr.loadImage(img);
-        historyMgr.clear();
-        dropzone.style.display = 'none';
-        updateUIState();
-        updateCursorAppearance();
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  imageInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleImageFile(e.target.files[0]);
+    if (!isInsideViewport) {
+      // Kursor sedang berada di luar canvas (misal di sidebar atau header)
+      cursorRing.style.display = 'none';
+      return;
     }
-  });
 
-  dropzoneInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleImageFile(e.target.files[0]);
+    // Aktifkan reticle kursor
+    cursorRing.style.display = 'block';
+    viewport.style.cursor = 'none';
+
+    // Titik target aktual (dengan offset)
+    const targetX = e.clientX;
+    const targetY = e.clientY - cursorOffset;
+
+    cursorRing.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
+
+    // Cek koordinat pada gambar asli
+    const imgPos = canvasMgr.screenToImageCoords(targetX, targetY);
+    const inBounds = (
+      imgPos.x >= 0 && imgPos.x < canvasMgr.imageWidth &&
+      imgPos.y >= 0 && imgPos.y < canvasMgr.imageHeight
+    );
+
+    if (inBounds) {
+      cursorRing.classList.remove('out-of-bounds');
+      const px = Math.floor(imgPos.x);
+      const py = Math.floor(imgPos.y);
+      const idx = (py * canvasMgr.imageWidth + px) * 4;
+      const d = canvasMgr.currentImageData.data;
+
+      const r = d[idx];
+      const g = d[idx + 1];
+      const b = d[idx + 2];
+      const a = d[idx + 3];
+
+      // Update preview loupe dan status bar
+      if (a === 0) {
+        reticleLoupe.style.display = 'block';
+        reticleLoupe.style.backgroundColor = '#ffffff';
+        reticleLoupe.style.backgroundImage = 'radial-gradient(#94a3b8 1px, transparent 0)';
+        reticleLoupe.style.backgroundSize = '4px 4px';
+        pixelColorIndicator.style.backgroundColor = 'transparent';
+        pixelCoordText.textContent = `X: ${px}, Y: ${py} • Transparan`;
+      } else {
+        const colorStr = `rgb(${r}, ${g}, ${b})`;
+        reticleLoupe.style.display = 'block';
+        reticleLoupe.style.backgroundImage = 'none';
+        reticleLoupe.style.backgroundColor = colorStr;
+        pixelColorIndicator.style.backgroundColor = colorStr;
+        pixelCoordText.textContent = `X: ${px}, Y: ${py} • ${colorStr}`;
+      }
+    } else {
+      cursorRing.classList.add('out-of-bounds');
+      reticleLoupe.style.display = 'none';
+      pixelCoordText.textContent = 'Di luar area gambar';
     }
-  });
 
-  // Drag & Drop
-  viewport.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    viewport.style.borderColor = '#3b82f6';
-  });
-
-  viewport.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-  });
-
-  viewport.addEventListener('drop', (e) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleImageFile(e.dataTransfer.files[0]);
-    }
-  });
-
-  // --- SAMPLE IMAGE GENERATOR ---
-  sampleImageBtn.addEventListener('click', () => {
-    // Generate a high-contrast sample image using offscreen canvas
-    const sampleCanvas = document.createElement('canvas');
-    sampleCanvas.width = 600;
-    sampleCanvas.height = 600;
-    const sCtx = sampleCanvas.getContext('2d');
-
-    // 1. Background (solid teal yang mudah di-erase dengan Auto)
-    sCtx.fillStyle = '#06b6d4';
-    sCtx.fillRect(0, 0, 600, 600);
-
-    // 2. Central Object: A stylish camera
-    // Camera body
-    sCtx.fillStyle = '#1e293b';
-    sCtx.beginPath();
-    sCtx.roundRect(130, 200, 340, 240, 30);
-    sCtx.fill();
-
-    // Top flash & viewfinder
-    sCtx.fillStyle = '#f59e0b';
-    sCtx.beginPath();
-    sCtx.roundRect(170, 150, 90, 50, 10);
-    sCtx.fill();
-
-    sCtx.fillStyle = '#ef4444';
-    sCtx.beginPath();
-    sCtx.arc(400, 175, 18, 0, Math.PI * 2);
-    sCtx.fill();
-
-    // Big Camera Lens (multi-circle)
-    sCtx.fillStyle = '#334155';
-    sCtx.beginPath();
-    sCtx.arc(300, 320, 95, 0, Math.PI * 2);
-    sCtx.fill();
-
-    sCtx.fillStyle = '#0f172a';
-    sCtx.beginPath();
-    sCtx.arc(300, 320, 75, 0, Math.PI * 2);
-    sCtx.fill();
-
-    sCtx.fillStyle = '#3b82f6';
-    sCtx.beginPath();
-    sCtx.arc(300, 320, 50, 0, Math.PI * 2);
-    sCtx.fill();
-
-    // Lens reflection glare
-    sCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-    sCtx.beginPath();
-    sCtx.arc(285, 305, 20, 0, Math.PI * 2);
-    sCtx.fill();
-
-    // Convert to image
-    const img = new Image();
-    img.onload = () => {
-      canvasMgr.loadImage(img);
-      historyMgr.clear();
-      dropzone.style.display = 'none';
-      updateUIState();
-      updateCursorAppearance();
-    };
-    img.src = sampleCanvas.toDataURL();
-  });
-
-  // --- CANVAS INTERACTIONS (POINTER EVENTS) ---
-  viewport.addEventListener('pointerenter', () => {
-    if (canvasMgr.currentImageData && currentMode !== 'pan') {
-      cursorRing.style.display = 'block';
-    }
-  });
-
-  viewport.addEventListener('pointerleave', () => {
-    cursorRing.style.display = 'none';
-    isDrawing = false;
-    isPanning = false;
-  });
-
-  viewport.addEventListener('pointermove', (e) => {
-    moveCursor(e);
-
+    // Pan Viewport handling
     if (isPanning) {
       const dx = e.clientX - panStart.x;
       const dy = e.clientY - panStart.y;
       panStart = { x: e.clientX, y: e.clientY };
       canvasMgr.panBy(dx, dy);
+      updateCursorAppearance();
       return;
     }
 
-    if (!isDrawing || !canvasMgr.currentImageData) return;
-
-    const targetY = e.clientY - cursorOffset;
-    const imgPos = canvasMgr.screenToImageCoords(e.clientX, targetY);
+    // Brush drawing handling
+    if (!isDrawing || !inBounds) return;
 
     if (currentMode === 'magic') {
       Algorithms.interpolateStroke(lastImagePos, imgPos, brushSize, (x, y) => {
@@ -357,10 +309,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // --- CANVAS INTERACTIONS (POINTER DOWN / UP) ---
   viewport.addEventListener('pointerdown', (e) => {
     if (!canvasMgr.currentImageData) return;
 
-    // Pan via mode 'pan', tombol spasi, atau klik tengah mouse
+    // Pan canvas via mode 'pan', middle click, atau spacebar
     if (currentMode === 'pan' || e.button === 1 || e.spaceKey) {
       isPanning = true;
       panStart = { x: e.clientX, y: e.clientY };
@@ -368,14 +321,23 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (e.button !== 0) return; // Hanya klik kiri untuk tools
+    if (e.button !== 0) return; // Klik kiri saja
 
+    const targetX = e.clientX;
     const targetY = e.clientY - cursorOffset;
-    const imgPos = canvasMgr.screenToImageCoords(e.clientX, targetY);
+    const imgPos = canvasMgr.screenToImageCoords(targetX, targetY);
+
+    const inBounds = (
+      imgPos.x >= 0 && imgPos.x < canvasMgr.imageWidth &&
+      imgPos.y >= 0 && imgPos.y < canvasMgr.imageHeight
+    );
+
+    if (!inBounds) return;
+
     lastImagePos = imgPos;
 
     if (currentMode === 'auto') {
-      // Auto Mode: Magic Wand Flood Fill
+      // Auto Mode: Magic Wand
       historyMgr.push(canvasMgr.currentImageData);
       const changed = Algorithms.floodFill(canvasMgr.currentImageData, imgPos.x, imgPos.y, threshold, contiguous);
       if (changed) {
@@ -383,12 +345,13 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUIState();
       }
     } else if (currentMode === 'magic') {
-      // Simpan history sebelum mulai sapuan brush
       historyMgr.push(canvasMgr.currentImageData);
       isDrawing = true;
 
-      // Ambil warna referensi awal di bawah target
-      const idx = (Math.round(imgPos.y) * canvasMgr.imageWidth + Math.round(imgPos.x)) * 4;
+      // Sample warna awal di titik tengah
+      const px = Math.floor(imgPos.x);
+      const py = Math.floor(imgPos.y);
+      const idx = (py * canvasMgr.imageWidth + px) * 4;
       const d = canvasMgr.currentImageData.data;
       magicSampleColor = { r: d[idx], g: d[idx + 1], b: d[idx + 2] };
 
@@ -419,7 +382,127 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- ZOOM VIA MOUSE WHEEL ---
+  // --- IMAGE LOADING ---
+  function handleImageFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        canvasMgr.loadImage(img);
+        historyMgr.clear();
+        dropzone.style.display = 'none';
+        updateUIState();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  imageInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleImageFile(e.target.files[0]);
+    }
+  });
+
+  dropzoneInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleImageFile(e.target.files[0]);
+    }
+  });
+
+  // Drag & Drop File
+  viewport.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
+
+  viewport.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  // --- SAMPLE IMAGE GENERATOR ---
+  sampleImageBtn.addEventListener('click', () => {
+    const sampleCanvas = document.createElement('canvas');
+    sampleCanvas.width = 700;
+    sampleCanvas.height = 700;
+    const sCtx = sampleCanvas.getContext('2d');
+
+    // 1. Background (Solid Sky Blue)
+    sCtx.fillStyle = '#38bdf8';
+    sCtx.fillRect(0, 0, 700, 700);
+
+    // 2. Vintage Retro Camera Object
+    // Body base
+    sCtx.fillStyle = '#0f172a';
+    sCtx.beginPath();
+    sCtx.roundRect(150, 240, 400, 280, 28);
+    sCtx.fill();
+
+    // Leather body grip
+    sCtx.fillStyle = '#b45309';
+    sCtx.beginPath();
+    sCtx.roundRect(165, 300, 370, 180, 14);
+    sCtx.fill();
+
+    // Top silver plate
+    sCtx.fillStyle = '#e2e8f0';
+    sCtx.beginPath();
+    sCtx.roundRect(150, 210, 400, 50, [20, 20, 0, 0]);
+    sCtx.fill();
+
+    // Shutter button & dials
+    sCtx.fillStyle = '#ef4444';
+    sCtx.beginPath();
+    sCtx.arc(480, 195, 16, 0, Math.PI * 2);
+    sCtx.fill();
+
+    sCtx.fillStyle = '#64748b';
+    sCtx.beginPath();
+    sCtx.roundRect(200, 185, 45, 30, 4);
+    sCtx.fill();
+
+    // Center Lens Rings
+    sCtx.fillStyle = '#1e293b';
+    sCtx.beginPath();
+    sCtx.arc(350, 390, 110, 0, Math.PI * 2);
+    sCtx.fill();
+
+    sCtx.fillStyle = '#334155';
+    sCtx.beginPath();
+    sCtx.arc(350, 390, 90, 0, Math.PI * 2);
+    sCtx.fill();
+
+    sCtx.fillStyle = '#090d16';
+    sCtx.beginPath();
+    sCtx.arc(350, 390, 65, 0, Math.PI * 2);
+    sCtx.fill();
+
+    sCtx.fillStyle = '#2563eb';
+    sCtx.beginPath();
+    sCtx.arc(350, 390, 40, 0, Math.PI * 2);
+    sCtx.fill();
+
+    // Glass reflection
+    sCtx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    sCtx.beginPath();
+    sCtx.arc(335, 375, 18, 0, Math.PI * 2);
+    sCtx.fill();
+
+    const img = new Image();
+    img.onload = () => {
+      canvasMgr.loadImage(img);
+      historyMgr.clear();
+      dropzone.style.display = 'none';
+      updateUIState();
+    };
+    img.src = sampleCanvas.toDataURL();
+  });
+
+  // --- ZOOM VIA WHEEL ---
   viewport.addEventListener('wheel', (e) => {
     e.preventDefault();
     if (!canvasMgr.currentImageData) return;
@@ -427,28 +510,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
     canvasMgr.zoomAt(e.clientX, e.clientY, zoomFactor);
     updateUIState();
-    updateCursorAppearance();
   }, { passive: false });
 
-  // Floating Zoom Buttons
   zoomInBtn.addEventListener('click', () => {
     const vpRect = viewport.getBoundingClientRect();
     canvasMgr.zoomAt(vpRect.width / 2, vpRect.height / 2, 1.25);
     updateUIState();
-    updateCursorAppearance();
   });
 
   zoomOutBtn.addEventListener('click', () => {
     const vpRect = viewport.getBoundingClientRect();
     canvasMgr.zoomAt(vpRect.width / 2, vpRect.height / 2, 0.8);
     updateUIState();
-    updateCursorAppearance();
   });
 
   zoomFitBtn.addEventListener('click', () => {
     canvasMgr.fitToScreen();
     updateUIState();
-    updateCursorAppearance();
   });
 
   // --- UNDO / REDO / RESET ---
@@ -475,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   resetBtn.addEventListener('click', () => {
     if (!canvasMgr.originalImageData) return;
-    if (confirm('Kembalikan gambar ke kondisi awal? Semua editan akan dihapus.')) {
+    if (confirm('Kembalikan gambar ke kondisi awal? Semua editan akan dibatalkan.')) {
       historyMgr.push(canvasMgr.currentImageData);
       const restored = new ImageData(
         new Uint8ClampedArray(canvasMgr.originalImageData.data),
@@ -487,39 +565,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Keyboard Shortcuts
+  // Shortcuts
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
-      if (e.shiftKey) {
-        doRedo();
-      } else {
-        doUndo();
-      }
+      if (e.shiftKey) doRedo();
+      else doUndo();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
       e.preventDefault();
       doRedo();
     }
   });
 
-  // --- DOWNLOAD PNG ---
+  // --- EXPORT PNG ---
   downloadBtn.addEventListener('click', () => {
     if (!canvasMgr.currentImageData) return;
 
-    // Terapkan Smooth Edge jika disetel > 0
     let finalImageData = canvasMgr.currentImageData;
     if (smoothEdge > 0) {
       finalImageData = Algorithms.applySmoothEdge(canvasMgr.currentImageData, smoothEdge);
     }
 
-    // Buat canvas sementara untuk ekspor gambar beresolusi penuh
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = canvasMgr.imageWidth;
     exportCanvas.height = canvasMgr.imageHeight;
     const expCtx = exportCanvas.getContext('2d');
     expCtx.putImageData(finalImageData, 0, 0);
 
-    // Trigger download
     const link = document.createElement('a');
     link.download = `quick-erase-${Date.now()}.png`;
     link.href = exportCanvas.toDataURL('image/png');
